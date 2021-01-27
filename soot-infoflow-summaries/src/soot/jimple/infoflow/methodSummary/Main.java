@@ -45,6 +45,7 @@ class Main {
 	private static final String OPTION_CLASS_TIMEOUT = "ct";
 	private static final String OPTION_ANALYZE_HASHCODE_EQUALS = "he";
 	private static final String OPTION_ANDROID_PLATFORMS = "p";
+	private static final String OPTION_GENERIC_INTERFACE = "gi";
 
 	public static void main(final String[] args) throws FileNotFoundException, XMLStreamException {
 		Main main = new Main();
@@ -75,6 +76,8 @@ class Main {
 				"Also analyze hashCode() and equals() methods");
 		options.addOption(OPTION_ANDROID_PLATFORMS, "platformsdir", true,
 				"Path to the platforms directory from the Android SDK");
+		options.addOption(OPTION_GENERIC_INTERFACE, "genericinterface", false,
+				"Finds all implementors of the given interface and creates a generic summary for the interface");
 	}
 
 	public void run(final String[] args) throws FileNotFoundException, XMLStreamException {
@@ -85,6 +88,7 @@ class Main {
 
 			final boolean forceOverwrite = cmd.hasOption(OPTION_FORCE_OVERWRITE);
 			boolean loadFullJAR = cmd.hasOption(OPTION_LOAD_FULL_JAR);
+			boolean genericInterfaceGeneration = cmd.hasOption(OPTION_GENERIC_INTERFACE);
 
 			// We need proper parameters
 			String[] extraArgs = cmd.getArgs();
@@ -123,6 +127,7 @@ class Main {
 
 			generator.getConfig().setLoadFullJAR(loadFullJAR);
 			generator.getConfig().setExcludes(excludes);
+			generator.getConfig().setGenericInterfaceCreation(genericInterfaceGeneration);
 
 			// Set optional settings
 			configureOptionalSettings(cmd, generator);
@@ -227,7 +232,7 @@ class Main {
 		System.out.println();
 
 		final HelpFormatter formatter = new HelpFormatter();
-		formatter.printHelp("soot-infoflow-cmd <JAR File> <Output Directory> <Classes...> [OPTIONS]", options);
+		formatter.printHelp("soot-infoflow-summaries <JAR File> <Output Directory> <Classes...> [OPTIONS]", options);
 	}
 
 	private static void createSummaries(SummaryGenerator generator, List<String> classesToAnalyze,

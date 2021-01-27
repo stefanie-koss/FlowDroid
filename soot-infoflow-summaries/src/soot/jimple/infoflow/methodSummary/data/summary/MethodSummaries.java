@@ -746,4 +746,7 @@ public class MethodSummaries implements Iterable<MethodFlow> {
 		return true;
 	}
 
+	public MethodSummaries generalizeMethods(String subsignature) {
+		return null;
+	}
 }

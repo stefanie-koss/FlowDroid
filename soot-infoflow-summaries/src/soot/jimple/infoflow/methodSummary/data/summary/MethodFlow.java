@@ -1,5 +1,6 @@
 package soot.jimple.infoflow.methodSummary.data.summary;
 
+import java.util.List;
 import java.util.Map;
 
 import soot.RefType;
@@ -20,8 +21,9 @@ public class MethodFlow extends AbstractMethodSummary {
 	private final FlowSource from;
 	private final FlowSink to;
 	private final boolean isAlias;
-	private final Boolean typeChecking;
+	private final Boolean typeChecking; // TODO: why Boolean instead of boolean?
 	private final Boolean cutSubFields;
+	private List<String> derivedByImplementors;
 
 	/**
 	 * Creates a new instance of the MethodFlow class
@@ -40,12 +42,30 @@ public class MethodFlow extends AbstractMethodSummary {
 	 */
 	public MethodFlow(String methodSig, FlowSource from, FlowSink to, boolean isAlias, Boolean typeChecking,
 			Boolean cutSubFields) {
+		this(methodSig, from, to, isAlias, typeChecking, cutSubFields, null);
+	}
+
+	public MethodFlow(String methodSig, FlowSource from, FlowSink to, boolean isAlias, Boolean typeChecking,
+			Boolean cutSubFields, List<String> derivedByImplementors) {
 		super(methodSig);
 		this.from = from;
 		this.to = to;
 		this.isAlias = isAlias;
 		this.typeChecking = typeChecking;
 		this.cutSubFields = cutSubFields;
+		this.derivedByImplementors = derivedByImplementors;
+	}
+
+	public void setDerivedByImplementors(List<String> implementors) {
+		this.derivedByImplementors = implementors;
+	}
+
+	public String getImplementorsAsString() {
+		return this.derivedByImplementors.toString();
+	}
+
+	public boolean isDerivedInterfaceFlow() {
+		return this.derivedByImplementors != null;
 	}
 
 	/**
@@ -154,7 +174,7 @@ public class MethodFlow extends AbstractMethodSummary {
 		if (replacementMap == null)
 			return this;
 		return new MethodFlow(methodSig, from.replaceGaps(replacementMap), to.replaceGaps(replacementMap), isAlias,
-				typeChecking, cutSubFields);
+				typeChecking, cutSubFields, derivedByImplementors);
 	}
 
 	/**

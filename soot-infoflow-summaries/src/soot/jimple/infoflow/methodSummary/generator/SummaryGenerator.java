@@ -6,10 +6,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,6 +41,7 @@ import soot.jimple.infoflow.methodSummary.data.provider.MemorySummaryProvider;
 import soot.jimple.infoflow.methodSummary.data.provider.MergingSummaryProvider;
 import soot.jimple.infoflow.methodSummary.data.summary.ClassMethodSummaries;
 import soot.jimple.infoflow.methodSummary.data.summary.ClassSummaries;
+import soot.jimple.infoflow.methodSummary.data.summary.Generalization;
 import soot.jimple.infoflow.methodSummary.data.summary.MethodFlow;
 import soot.jimple.infoflow.methodSummary.data.summary.MethodSummaries;
 import soot.jimple.infoflow.methodSummary.generator.gaps.GapManager;
@@ -54,6 +57,7 @@ import soot.jimple.infoflow.nativeCallHandler.INativeCallHandler;
 import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
 import soot.jimple.infoflow.taintWrappers.TaintWrapperList;
+import soot.jimple.infoflow.util.SootMethodRepresentationParser;
 import soot.options.Options;
 
 /**
@@ -270,14 +274,16 @@ public class SummaryGenerator {
 		Options.v().set_output_format(Options.output_format_none);
 		if (hasWildcard || config.getLoadFullJAR())
 			Options.v().set_process_dir(Arrays.asList(classpath.split(File.pathSeparator)));
-		else
+		else {
 			Options.v().set_soot_classpath(classpath);
+			Options.v().set_process_dir(Arrays.asList(classpath.split(File.pathSeparator)));
+		}
 		Options.v().set_whole_program(false);
 		Options.v().set_allow_phantom_refs(true);
 
 		for (String className : classNames) {
 			if (!className.endsWith(".*"))
-				Scene.v().addBasicClass(className, SootClass.SIGNATURES);
+				Scene.v().addBasicClass(className, SootClass.BODIES);
 		}
 		if (classpath.toLowerCase().endsWith(".apk")) {
 			Options.v().set_src_prec(Options.src_prec_apk);
@@ -286,9 +292,12 @@ public class SummaryGenerator {
 				Options.v().set_android_jars(config.getAndroidPlatformDir());
 		} else
 			Options.v().set_src_prec(Options.src_prec_class);
+
 		Scene.v().loadNecessaryClasses();
+		soot.util.Chain<SootClass> debugClasses = Scene.v().getClasses();
 
 		Set<ClassAnalysisTask> realClasses = new HashSet<>(classNames.size());
+
 		if (config.getLoadFullJAR()) {
 			for (Iterator<SootClass> scIt = Scene.v().getApplicationClasses().snapshotIterator(); scIt.hasNext();) {
 				SootClass sc = scIt.next();
@@ -297,6 +306,34 @@ public class SummaryGenerator {
 					checkAndAdd(realClasses, sc.getName());
 			}
 		}
+
+		// Resolve classes for generic interface summary generation
+		String interfaceName = "";
+		List<String> interfaces = new ArrayList<>();
+		Map<String, Set<ClassAnalysisTask>> interfaceToImplementors = new HashMap<>();
+		if (config.getGenericInterfaceCreation()) {
+			if (classNames.size() != 1)
+				logger.error("More than one classname given for generic interface generation");
+			for (String className : classNames) {
+				SootClass sc = Scene.v().getSootClass(className);
+				interfaceName = className;
+				if (sc.isConcrete()) {
+					logger.error("Generic interface generation needs interface instead of concrete class");
+				} else {
+					Set<ClassAnalysisTask> implementorClasses = new HashSet<>();
+					// If this is an interface or an abstract class, we
+					// take all concrete child classes
+					for (String impl : getImplementorsOf(sc)) {
+						checkAndAdd(realClasses, impl);
+						checkAndAdd(implementorClasses, impl);
+						// implementorClasses.add(impl);
+					}
+					interfaces.add(className);
+					interfaceToImplementors.put(className, implementorClasses);
+				}
+			}
+		}
+
 		// Resolve placeholder classes
 		for (String className : classNames) {
 			if (className.endsWith(".*")) {
@@ -304,7 +341,7 @@ public class SummaryGenerator {
 				for (Iterator<SootClass> scIt = Scene.v().getClasses().snapshotIterator(); scIt.hasNext();) {
 					SootClass sc = scIt.next();
 					if (sc.getName().startsWith(prefix)) {
-						Scene.v().forceResolve(sc.getName(), SootClass.SIGNATURES);
+						Scene.v().forceResolve(sc.getName(), SootClass.SIGNATURES); // why only for placeholder?
 						if (sc.isConcrete())
 							checkAndAdd(realClasses, sc.getName());
 					}
@@ -314,8 +351,9 @@ public class SummaryGenerator {
 				if (!sc.isConcrete()) {
 					// If this is an interface or an abstract class, we
 					// take all concrete child classes
-					for (String impl : getImplementorsOf(sc))
+					for (String impl : getImplementorsOf(sc)) {
 						checkAndAdd(realClasses, impl);
+					}
 				} else
 					checkAndAdd(realClasses, className);
 			}
@@ -334,6 +372,9 @@ public class SummaryGenerator {
 			Set<String> doneMethods = new HashSet<>();
 			SootClass sc = Scene.v().getSootClass(analysisTask.className);
 			for (SootMethod sm : sc.getMethods()) {
+				// TODO: The methods are added here, need to exclude everything not belonging to
+				// interface
+//				if (sm.getSubSignature().contains("add(int") && checkAndAdd(analysisTask, sm)) {
 				if (checkAndAdd(analysisTask, sm)) {
 					doneMethods.add(sm.getSubSignature());
 				}
@@ -347,10 +388,22 @@ public class SummaryGenerator {
 					break;
 
 				for (SootMethod sm : curClass.getMethods()) {
+//					if (sm.getSubSignature().contains("add") && checkAndAdd(analysisTask, sm))
 					if (checkAndAdd(analysisTask, sm))
 						doneMethods.add(sm.getSubSignature());
 				}
 				curClass = curClass.getSuperclassUnsafe();
+			}
+		}
+
+		// Collect methods from analyzed interface
+		List<String> interfaceMethods = new ArrayList<>();
+		if (config.getGenericInterfaceCreation()) {
+			for (String i : interfaces) {
+				SootClass sc = Scene.v().getSootClass(i);
+				for (SootMethod sm : sc.getMethods()) {
+					interfaceMethods.add(sm.getSubSignature());
+				}
 			}
 		}
 
@@ -366,6 +419,7 @@ public class SummaryGenerator {
 			final String className = analysisTask.className;
 
 			// Check if we really need to analyze this class
+			// TODO: have a look at handlers, what can they do?
 			if (handler != null) {
 				if (!handler.onBeforeAnalyzeClass(className)) {
 					logger.info(String.format("Skipping over class %s", className));
@@ -383,6 +437,12 @@ public class SummaryGenerator {
 
 				curSummaries = new ClassMethodSummaries(className);
 				for (String methodSig : analysisTask.methods) {
+					// TODO: what is a SummaryHierarchyGenerator, what does it do?
+					String methodSubSig = SootMethodRepresentationParser.v().parseSootMethodString(methodSig)
+							.getSubSignature();
+					if (config.getGenericInterfaceCreation() && !interfaceMethods.contains(methodSubSig)) {
+						continue;
+					}
 					MethodSummaries newSums = createMethodSummary(classpath, methodSig, className, gapManager,
 							new SummaryHierarchyGenerator(curSummaries));
 					if (handler != null) {
@@ -417,6 +477,42 @@ public class SummaryGenerator {
 			// as we might have created new duplicates during the merge.
 			new SummaryFlowCompactor(curSummaries.getMethodSummaries()).compact();
 		}
+
+		// merge concrete summaries for interface
+		// iterate over interfaceMethods
+		// -> extract the flows (associated with implementing class!)
+		// -> match flows (start pairwise, think about multiple implementing classes
+		// later)
+		ClassMethodSummaries curSummaries = new ClassMethodSummaries(interfaceName);
+		Map<String, Generalization> methodGeneralizations = new HashMap<>(interfaceMethods.size());
+		for (String m : interfaceMethods) {
+			Generalization gen = new Generalization(m);
+			for (String className : summaries.getClasses()) {
+				gen.addMethodFlowsForClass(className, summaries.getMethodSummaries(className).getFlowsForMethod(m));
+			}
+			gen.generalizeMethods();
+
+			methodGeneralizations.put(m, gen);
+			MethodSummaries interfaceSummaries = gen.getGeneralizationFromEquivalenceClasses();
+
+			handler.onMethodFinished(m, interfaceSummaries);
+			curSummaries.merge(interfaceSummaries);
+		}
+		// new SummaryFlowCompactor(curSummaries.getMethodSummaries()).compact();
+
+		if (handler != null)
+			handler.onClassFinished(curSummaries);
+
+		/*
+		 * for (String m : interfaceMethods) { // can not use this, it mixes up the
+		 * flows from different classes // MethodSummaries ms =
+		 * summaries.getAllSummariesForMethod(m); ClassSummaries classSummaries =
+		 * summaries.filterForMethod(m); // Collection<ClassMethodSummaries>
+		 * methodSummaries = // classSummaries.getAllSummaries(); Generalization gen =
+		 * new Generalization(); for (String className : classSummaries.getClasses()) {
+		 * 
+		 * } gen.addMethod(cms.getMethodSummaries()); gen.generalizeMethods(m); }
+		 */
 
 		// Calculate the dependencies
 		calculateDependencies(summaries);
@@ -491,7 +587,7 @@ public class SummaryGenerator {
 			if (curClass.isConcrete())
 				classes.add(curClass.getName());
 
-			if (sc.isInterface()) {
+			if (sc.isInterface()) { // why every time in loop?
 				workList.addAll(Scene.v().getActiveHierarchy().getImplementersOf(sc));
 				workList.addAll(Scene.v().getActiveHierarchy().getSubinterfacesOf(sc));
 			} else

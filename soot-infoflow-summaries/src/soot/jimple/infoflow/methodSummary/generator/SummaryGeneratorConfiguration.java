@@ -15,6 +15,7 @@ public class SummaryGeneratorConfiguration extends InfoflowConfiguration {
 
 	protected boolean loadFullJAR = false;
 	protected String androidPlatformDir = "";
+	protected boolean genericInterfaceCreation = false;
 
 	protected Set<String> excludes = null;
 	protected boolean summarizeHashCodeEquals = false;
@@ -125,6 +126,14 @@ public class SummaryGeneratorConfiguration extends InfoflowConfiguration {
 	 */
 	public boolean getLoadFullJAR() {
 		return this.loadFullJAR;
+	}
+
+	public void setGenericInterfaceCreation(boolean genericInterfaceCreation) {
+		this.genericInterfaceCreation = genericInterfaceCreation;
+	}
+
+	public boolean getGenericInterfaceCreation() {
+		return this.genericInterfaceCreation;
 	}
 
 	/**

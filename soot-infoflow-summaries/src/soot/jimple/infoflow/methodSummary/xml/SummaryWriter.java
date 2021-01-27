@@ -144,6 +144,8 @@ public class SummaryWriter {
 					if (!data.isCustom()) {
 						writer.writeStartElement(TREE_FLOW);
 						writer.writeAttribute(XMLConstants.ATTRIBUTE_IS_ALIAS, data.isAlias() + "");
+						if (data.isDerivedInterfaceFlow())
+							writer.writeAttribute(XMLConstants.ATTRIBUTE_IMPLEMENTORS, data.getImplementorsAsString());
 						writeFlowSource(writer, data);
 						writeFlowSink(writer, data);
 						writer.writeEndElement(); // end flow
