@@ -1630,6 +1630,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		info.setTaintWrapper(taintWrapper);
 		info.setTaintPropagationHandler(taintPropagationHandler);
 		info.setBackwardsPropagationHandler(backwardsPropagationHandler);
+		info.setMethodFilterFile(config.getAnalysisFileConfig().getFilterFile());
 
 		// We use a specialized memory manager that knows about Android
 		info.setMemoryManagerFactory(new IMemoryManagerFactory() {
@@ -1887,6 +1888,16 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 */
 	public void setBackwardsPropagationHandler(TaintPropagationHandler backwardsPropagationHandler) {
 		this.backwardsPropagationHandler = backwardsPropagationHandler;
+	}
+
+	/**
+	 * Sets a filter file that defines which methods shall be skipped during the
+	 * taint analysis
+	 * 
+	 * @param filterFile
+	 */
+	public void setMethodFilterFile(String filterFile) {
+		this.config.getAnalysisFileConfig().setFilterFile(filterFile);
 	}
 
 	/**

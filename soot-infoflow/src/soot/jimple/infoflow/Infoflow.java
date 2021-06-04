@@ -115,6 +115,7 @@ public class Infoflow extends AbstractInfoflow {
 	protected Set<ResultsAvailableHandler> onResultsAvailable = new HashSet<>();
 	protected TaintPropagationHandler taintPropagationHandler = null;
 	protected TaintPropagationHandler backwardsPropagationHandler = null;
+	protected String methodFilterFile = "";
 
 	protected IMemoryManagerFactory memoryManagerFactory = new DefaultMemoryManagerFactory();
 	protected IExecutorFactory executorFactory = new DefaultExecutorFactory();
@@ -375,7 +376,8 @@ public class Infoflow extends AbstractInfoflow {
 				manager.setAliasing(aliasing);
 
 				// Initialize the data flow problem
-				InfoflowProblem forwardProblem = new InfoflowProblem(manager, zeroValue, ruleManagerFactory);
+				InfoflowProblem forwardProblem = new InfoflowProblem(manager, zeroValue, ruleManagerFactory,
+						methodFilterFile);
 
 				// We need to create the right data flow solver
 				IInfoflowSolver forwardSolver = createForwardSolver(executor, forwardProblem);
@@ -1258,6 +1260,11 @@ public class Infoflow extends AbstractInfoflow {
 	@Override
 	public void setBackwardsPropagationHandler(TaintPropagationHandler handler) {
 		this.backwardsPropagationHandler = handler;
+	}
+
+	@Override
+	public void setMethodFilterFile(String methodFilterFile) {
+		this.methodFilterFile = methodFilterFile;
 	}
 
 	@Override

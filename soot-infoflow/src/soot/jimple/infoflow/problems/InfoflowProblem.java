@@ -48,6 +48,8 @@ import soot.jimple.infoflow.aliasing.Aliasing;
 import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.data.AccessPath.ArrayTaintType;
+import soot.jimple.infoflow.filter.IMethodFilter;
+import soot.jimple.infoflow.filter.MethodFilterParser;
 import soot.jimple.infoflow.handlers.TaintPropagationHandler.FlowFunctionType;
 import soot.jimple.infoflow.problems.rules.IPropagationRuleManagerFactory;
 import soot.jimple.infoflow.problems.rules.PropagationRuleManager;
@@ -63,15 +65,28 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 
 	private final PropagationRuleManager propagationRules;
 
+	private IMethodFilter filter;
+
 	protected final TaintPropagationResults results;
 
 	public InfoflowProblem(InfoflowManager manager, Abstraction zeroValue,
-			IPropagationRuleManagerFactory ruleManagerFactory) {
+			IPropagationRuleManagerFactory ruleManagerFactory, String filterFile) {
 		super(manager);
 
 		this.zeroValue = zeroValue == null ? createZeroValue() : zeroValue;
 		this.results = new TaintPropagationResults(manager);
 		this.propagationRules = ruleManagerFactory.createRuleManager(manager, this.zeroValue, results);
+		if (filterFile != null && !filterFile.isEmpty())
+			this.filter = MethodFilterParser.fromFile(filterFile);
+		else {
+			this.filter = new IMethodFilter() {
+				@Override
+				public boolean skipMethod(String signature) {
+					return false;
+				}
+			};
+		}
+
 	}
 
 	@Override
@@ -404,6 +419,10 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 
 				final Stmt stmt = (Stmt) src;
 				final InvokeExpr ie = (stmt != null && stmt.containsInvokeExpr()) ? stmt.getInvokeExpr() : null;
+
+				ie.getMethod().getSignature();
+				if (filter.skipMethod(ie.getMethod().getSignature()))
+					return KillAll.v();
 
 				final Local[] paramLocals = dest.getActiveBody().getParameterLocals().toArray(new Local[0]);
 
@@ -787,13 +806,16 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 						if (source == getZeroValue())
 							return res == null || res.isEmpty() ? Collections.<Abstraction>emptySet() : res;
 
-						// Initialize the result set
-						if (res == null)
-							res = new HashSet<>();
-
 						if (newSource.getTopPostdominator() != null
 								&& newSource.getTopPostdominator().getUnit() == null)
 							return Collections.singleton(newSource);
+
+						if (filter.skipMethod(callee.getSignature()))
+							return Collections.singleton(newSource);
+
+						// Initialize the result set
+						if (res == null)
+							res = new HashSet<>();
 
 						// Static taints must always go through the callee
 						if (newSource.getAccessPath().isStaticFieldRef())

@@ -28,6 +28,7 @@ public class InfoflowAndroidConfiguration extends InfoflowConfiguration {
 		private String androidPlatformDir = "";
 		private String additionalClasspath = "";
 		private String outputFile = "";
+		private String filterFile = "";
 
 		/**
 		 * Copies the settings of the given configuration into this configuration object
@@ -40,6 +41,7 @@ public class InfoflowAndroidConfiguration extends InfoflowConfiguration {
 			this.androidPlatformDir = fileConfig.androidPlatformDir;
 			this.additionalClasspath = fileConfig.additionalClasspath;
 			this.outputFile = fileConfig.outputFile;
+			this.filterFile = fileConfig.filterFile;
 		}
 
 		/**
@@ -154,6 +156,28 @@ public class InfoflowAndroidConfiguration extends InfoflowConfiguration {
 			this.outputFile = outputFile;
 		}
 
+		/**
+		 * Gets the file that defines which methods should be skipped in the data flow
+		 * analysis
+		 * 
+		 * @return The file that defines which methods should be skipped in the data
+		 *         flow analysis
+		 */
+		public String getFilterFile() {
+			return filterFile;
+		}
+
+		/**
+		 * Sets the file that defines which methods should be skipped in the data flow
+		 * analysis
+		 * 
+		 * @param filterFile The file that defines which methods should be skipped in
+		 *                   the data flow analysis
+		 */
+		public void setFilterFile(String filterFile) {
+			this.filterFile = filterFile;
+		}
+
 		@Override
 		public int hashCode() {
 			final int prime = 31;
@@ -163,6 +187,7 @@ public class InfoflowAndroidConfiguration extends InfoflowConfiguration {
 			result = prime * result + ((outputFile == null) ? 0 : outputFile.hashCode());
 			result = prime * result + ((sourceSinkFile == null) ? 0 : sourceSinkFile.hashCode());
 			result = prime * result + ((targetAPKFile == null) ? 0 : targetAPKFile.hashCode());
+			result = prime * result + ((filterFile == null) ? 0 : filterFile.hashCode());
 			return result;
 		}
 
@@ -199,6 +224,11 @@ public class InfoflowAndroidConfiguration extends InfoflowConfiguration {
 				if (other.targetAPKFile != null)
 					return false;
 			} else if (!targetAPKFile.equals(other.targetAPKFile))
+				return false;
+			if (filterFile == null) {
+				if (other.filterFile != null)
+					return false;
+			} else if (!filterFile.equals(other.filterFile))
 				return false;
 			return true;
 		}

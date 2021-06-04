@@ -71,6 +71,7 @@ public class MainClass {
 	private static final String OPTION_PLATFORMS_DIR = "p";
 	private static final String OPTION_SOURCES_SINKS_FILE = "s";
 	private static final String OPTION_OUTPUT_FILE = "o";
+	private static final String OPTION_FILTER_FILE = "f";
 	private static final String OPTION_ADDITIONAL_CLASSPATH = "ac";
 	private static final String OPTION_SKIP_APK_FILE = "si";
 	private static final String OPTION_WRITE_JIMPLE_FILES = "wj";
@@ -146,6 +147,8 @@ public class MainClass {
 				"Path to the platforms directory from the Android SDK");
 		options.addOption(OPTION_SOURCES_SINKS_FILE, "sourcessinksfile", true, "Definition file for sources and sinks");
 		options.addOption(OPTION_OUTPUT_FILE, "outputfile", true, "Output XML file for the discovered data flows");
+		options.addOption(OPTION_FILTER_FILE, "filterfile", true,
+				"Definition file for methods that should be skipped in the data flow analysis");
 		options.addOption(OPTION_ADDITIONAL_CLASSPATH, "additionalclasspath", true,
 				"Additional JAR file that shal be put on the classpath");
 		options.addOption(OPTION_SKIP_APK_FILE, "skipapkfile", true,
@@ -747,6 +750,11 @@ public class MainClass {
 			String outputFile = cmd.getOptionValue(OPTION_OUTPUT_FILE);
 			if (outputFile != null && !outputFile.isEmpty())
 				config.getAnalysisFileConfig().setOutputFile(outputFile);
+		}
+		{
+			String filterFile = cmd.getOptionValue(OPTION_FILTER_FILE);
+			if (filterFile != null && !filterFile.isEmpty())
+				config.getAnalysisFileConfig().setFilterFile(filterFile);
 		}
 		{
 			String additionalClasspath = cmd.getOptionValue(OPTION_ADDITIONAL_CLASSPATH);

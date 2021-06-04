@@ -239,6 +239,14 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	public void setTaintPropagationHandler(TaintPropagationHandler handler);
 
 	/**
+	 * Sets a filter file that defines which methods shall be skipped during the
+	 * taint analysis
+	 * 
+	 * @param filterFile
+	 */
+	public void setMethodFilterFile(String filterFile);
+
+	/**
 	 * Sets a handler which is invoked whenever an alias is propagated backwards
 	 * 
 	 * @param handler The handler to be invoked when propagating aliases
