@@ -1,5 +1,7 @@
 package soot.jimple.infoflow.filter;
 
+import java.util.List;
+
 public interface IMethodFilter {
 
 	/**
@@ -9,4 +11,6 @@ public interface IMethodFilter {
 	 * @return
 	 */
 	public boolean skipMethod(String signature);
+
+	public List<String> getInsecureMethods();
 }

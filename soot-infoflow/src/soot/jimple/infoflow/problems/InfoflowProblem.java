@@ -10,9 +10,11 @@
  ******************************************************************************/
 package soot.jimple.infoflow.problems;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import heros.FlowFunction;
@@ -83,6 +85,11 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 				@Override
 				public boolean skipMethod(String signature) {
 					return false;
+				}
+
+				@Override
+				public List<String> getInsecureMethods() {
+					return new ArrayList<String>();
 				}
 			};
 		}

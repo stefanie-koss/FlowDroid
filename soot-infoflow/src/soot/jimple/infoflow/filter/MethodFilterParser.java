@@ -16,6 +16,9 @@ public class MethodFilterParser implements IMethodFilter {
 	// the method no taint on a parameter reaches a sink.
 	List<String> methodsToSkip = new ArrayList<>();
 
+	// Signatures of methods that contain a taint flow from a parameter to a sink
+	List<String> insecureMethods = new ArrayList<>();
+
 	private final String regex = "^(.+:\\s*.+\\s+.+\\s*\\(.*\\)),(.+)$";
 
 	protected MethodFilterParser(String fileName) {
@@ -50,6 +53,9 @@ public class MethodFilterParser implements IMethodFilter {
 
 				if (type.equals("NoSQLi") || type.equals("NoSink")) {
 					methodsToSkip.add(sig);
+				}
+				if (type.equals("SQLi")) {
+					insecureMethods.add(sig);
 				}
 			}
 		}
@@ -86,4 +92,10 @@ public class MethodFilterParser implements IMethodFilter {
 			return true;
 		return false;
 	}
+
+	@Override
+	public List<String> getInsecureMethods() {
+		return insecureMethods;
+	}
+
 }
