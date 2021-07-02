@@ -82,6 +82,7 @@ import soot.jimple.infoflow.config.IInfoflowConfig;
 import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.FlowDroidMemoryManager.PathDataErasureMode;
 import soot.jimple.infoflow.entryPointCreators.SimulatedCodeElementTag;
+import soot.jimple.infoflow.filter.IMethodFilter;
 import soot.jimple.infoflow.handlers.PostAnalysisHandler;
 import soot.jimple.infoflow.handlers.PreAnalysisHandler;
 import soot.jimple.infoflow.handlers.ResultsAvailableHandler;
@@ -131,6 +132,8 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	protected ITaintPropagationWrapper taintWrapper;
 
 	protected ISourceSinkManager sourceSinkManager = null;
+
+	protected IMethodFilter methodFilter = null;
 
 	protected IInfoflowConfig sootConfig = new SootConfigForAndroid();
 	protected BiDirICFGFactory cfgFactory = null;
@@ -496,6 +499,16 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 						entrypoints = callbacks.getEntryPoints();
 						fragmentClasses = callbacks.getFragmentClasses();
 						callbackMethods = callbacks.getCallbackMethods();
+
+						// remove callback methods that could not be found in soot
+						List<SootClass> classes = new ArrayList<>(callbackMethods.keySet());
+						for (SootClass sc : classes) {
+							List<AndroidCallbackDefinition> cbMethods = new ArrayList<>(callbackMethods.get(sc));
+							for (AndroidCallbackDefinition cb : cbMethods) {
+								if (cb.getTargetMethod() == null)
+									callbackMethods.remove(sc, cb);
+							}
+						}
 
 						// Create the callgraph
 						createMainMethod(entryPoint);
@@ -1056,7 +1069,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 * @param callbackClass The class with which to associate the layout callbacks
 	 * @param lc            The layout control whose callbacks are to be associated
 	 *                      with the given class
-	 * @return 
+	 * @return
 	 */
 	private boolean registerCallbackMethodsForView(SootClass callbackClass, AndroidLayoutControl lc) {
 		// Ignore system classes
@@ -1156,7 +1169,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 * Initializes soot for running the soot-based phases of the application
 	 * metadata analysis
 	 */
-	private void initializeSoot() {
+	protected void initializeSoot() {
 		logger.info("Initializing Soot...");
 
 		final String androidJar = config.getAnalysisFileConfig().getAndroidPlatformDir();

@@ -41,7 +41,7 @@ public class FastCallbackAnalyzer extends AbstractCallbackAnalyzer {
 		logger.info("Collecting callbacks in FAST mode...");
 
 		// Find the mappings between classes and layouts
-		findClassLayoutMappings();
+//		findClassLayoutMappings();
 
 		for (SootClass sc : Scene.v().getApplicationClasses()) {
 			if (sc.isConcrete()) {
