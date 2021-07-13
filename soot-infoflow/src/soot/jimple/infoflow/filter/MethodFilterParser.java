@@ -19,7 +19,7 @@ public class MethodFilterParser implements IMethodFilter {
 	// Signatures of methods that contain a taint flow from a parameter to a sink
 	List<String> insecureMethods = new ArrayList<>();
 
-	private final String regex = "^(.+:\\s*.+\\s+.+\\s*\\(.*\\)),(.+)$";
+	private final String regex = "^(.+),(.+)$";
 
 	protected MethodFilterParser(String fileName) {
 		this.fileName = fileName;
@@ -48,7 +48,11 @@ public class MethodFilterParser implements IMethodFilter {
 		while ((line = rdr.readLine()) != null) {
 			Matcher m = p.matcher(line);
 			if (m.find()) {
-				String sig = "<" + m.group(1) + ">";
+				String sig = m.group(1);
+				if (!sig.startsWith("<"))
+					sig = "<" + sig;
+				if (!sig.endsWith(">"))
+					sig = sig + ">";
 				String type = m.group(2);
 
 				if (type.equals("NoSQLi") || type.equals("NoSink")) {
